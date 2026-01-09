@@ -8,15 +8,10 @@ namespace IotEdgeKafkaConnector.Infrastructure.Output;
 /// <summary>
 /// Logs telemetry messages as an output channel.
 /// </summary>
-public sealed class LoggingMessageOutputService : IMessageOutputService
+public sealed class LoggingMessageOutputService(ILogger<LoggingMessageOutputService> logger) : IMessageOutputService
 {
-    private readonly ILogger<LoggingMessageOutputService> _logger;
+    private readonly ILogger<LoggingMessageOutputService> _logger = logger;
     private readonly JsonSerializerOptions _jsonOptions = new() { WriteIndented = true };
-
-    public LoggingMessageOutputService(ILogger<LoggingMessageOutputService> logger)
-    {
-        _logger = logger;
-    }
 
     public Task SendAsync(IReadOnlyCollection<TelemetryMessage> messages, CancellationToken cancellationToken)
     {

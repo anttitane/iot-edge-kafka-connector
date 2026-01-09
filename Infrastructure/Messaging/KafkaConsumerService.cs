@@ -13,21 +13,14 @@ namespace IotEdgeKafkaConnector.Infrastructure.Messaging;
 /// Kafka consumer that parses telemetry payloads and hands them to the processing pipeline.
 /// Includes basic retry and error handling suitable for edge deployments.
 /// </summary>
-public sealed class KafkaConsumerService : BackgroundService
+public sealed class KafkaConsumerService(
+    IOptions<AppConfiguration> options,
+    IMessageProcessor messageProcessor,
+    ILogger<KafkaConsumerService> logger) : BackgroundService
 {
-    private readonly ILogger<KafkaConsumerService> _logger;
-    private readonly IMessageProcessor _messageProcessor;
-    private readonly AppConfiguration _settings;
-
-    public KafkaConsumerService(
-        IOptions<AppConfiguration> options,
-        IMessageProcessor messageProcessor,
-        ILogger<KafkaConsumerService> logger)
-    {
-        _settings = options.Value;
-        _messageProcessor = messageProcessor;
-        _logger = logger;
-    }
+    private readonly ILogger<KafkaConsumerService> _logger = logger;
+    private readonly IMessageProcessor _messageProcessor = messageProcessor;
+    private readonly AppConfiguration _settings = options.Value;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {

@@ -8,16 +8,10 @@ namespace IotEdgeKafkaConnector.Application.Processing;
 /// <summary>
 /// Fans out messages to multiple output services.
 /// </summary>
-public sealed class CompositeMessageOutputService : IMessageOutputService
+public sealed class CompositeMessageOutputService(IEnumerable<IMessageOutputService> outputs, ILogger<CompositeMessageOutputService> logger) : IMessageOutputService
 {
-    private readonly IReadOnlyCollection<IMessageOutputService> _outputs;
-    private readonly ILogger<CompositeMessageOutputService> _logger;
-
-    public CompositeMessageOutputService(IEnumerable<IMessageOutputService> outputs, ILogger<CompositeMessageOutputService> logger)
-    {
-        _outputs = outputs.ToArray();
-        _logger = logger;
-    }
+    private readonly IReadOnlyCollection<IMessageOutputService> _outputs = outputs.ToArray();
+    private readonly ILogger<CompositeMessageOutputService> _logger = logger;
 
     public async Task SendAsync(IReadOnlyCollection<TelemetryMessage> messages, CancellationToken cancellationToken)
     {

@@ -11,17 +11,11 @@ namespace IotEdgeKafkaConnector.Infrastructure.Output;
 /// <summary>
 /// Sends telemetry messages to IoT Hub/Edge module client via reflection to stay resilient to SDK changes.
 /// </summary>
-public sealed class IoTHubMessageOutputService : IMessageOutputService, IAsyncDisposable
+public sealed class IoTHubMessageOutputService(IOptions<AppConfiguration> config, ILogger<IoTHubMessageOutputService> logger) : IMessageOutputService, IAsyncDisposable
 {
-    private readonly dynamic _moduleClient;
-    private readonly ILogger<IoTHubMessageOutputService> _logger;
+    private readonly dynamic _moduleClient = CreateModuleClient(config.Value);
+    private readonly ILogger<IoTHubMessageOutputService> _logger = logger;
     private readonly JsonSerializerOptions _jsonOptions = new() { WriteIndented = true };
-
-    public IoTHubMessageOutputService(IOptions<AppConfiguration> config, ILogger<IoTHubMessageOutputService> logger)
-    {
-        _logger = logger;
-        _moduleClient = CreateModuleClient(config.Value);
-    }
 
     public async Task SendAsync(IReadOnlyCollection<TelemetryMessage> messages, CancellationToken cancellationToken)
     {
