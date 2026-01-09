@@ -44,6 +44,7 @@ public record AppConfiguration
 public record OutputOptions
 {
     public OutputAction Action { get; init; } = OutputAction.LogOnly;
+    public bool LogSerializedPayload { get; init; } = false;
 }
 
 public enum OutputAction

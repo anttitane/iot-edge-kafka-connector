@@ -8,7 +8,4 @@ public sealed record TelemetryMessage(
     string? NodeName,
     DateTimeOffset Timestamp,
     JsonElement Value,
-    string Topic)
-{
-    public JsonElement ValueElement => Value;
-}
+    string Topic);
