@@ -33,6 +33,14 @@ public sealed class KafkaConsumerService : BackgroundService
     {
         while (!stoppingToken.IsCancellationRequested)
         {
+            _logger.LogInformation(
+                "Kafka consumer starting with bootstrap={BootstrapServers}, topic={Topic}, group={GroupId}, autoCommit={AutoCommit}, offsetReset={OffsetReset}",
+                _settings.Kafka.BootstrapServers,
+                _settings.Kafka.Topic,
+                _settings.Kafka.GroupId,
+                _settings.Kafka.EnableAutoCommit,
+                _settings.Kafka.AutoOffsetReset);
+
             using var consumer = BuildConsumer();
 
             try

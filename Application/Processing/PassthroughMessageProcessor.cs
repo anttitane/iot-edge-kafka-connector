@@ -1,6 +1,7 @@
 using IotEdgeKafkaConnector.Domain.Interfaces;
 using IotEdgeKafkaConnector.Domain.Models;
 using Microsoft.Extensions.Logging;
+using System.Text.Json;
 
 namespace IotEdgeKafkaConnector.Application.Processing;
 
@@ -13,11 +14,13 @@ public sealed class PassthroughMessageProcessor(ILogger<PassthroughMessageProces
     public Task ProcessAsync(TelemetryEnvelope envelope, CancellationToken cancellationToken)
     {
         logger.LogInformation(
-            "Telemetry received from {Source} node {NodeId} at {Timestamp} (topic {Topic})",
+            "Telemetry received | source={Source} nodeId={NodeId} name={NodeName} ts={Timestamp:o} topic={Topic} payload={Payload}",
             envelope.Source,
             envelope.NodeId,
+            envelope.NodeName ?? "",
             envelope.Timestamp,
-            envelope.Topic ?? "unknown");
+            envelope.Topic ?? "unknown",
+            JsonSerializer.Serialize(envelope.Value));
 
         // Hook for strategy-specific processing (passthrough/aggregation) will be added later.
         return Task.CompletedTask;
