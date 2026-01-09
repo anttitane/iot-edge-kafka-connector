@@ -1,4 +1,5 @@
 using IotEdgeKafkaConnector.Domain.Models;
+using IotEdgeKafkaConnector.Application.Processing;
 
 namespace IotEdgeKafkaConnector.Application.Configuration;
 
@@ -8,6 +9,7 @@ public record AppConfiguration
     public IoTHubOptions IoTHub { get; init; } = new();
     public ProcessingOptions Processing { get; init; } = new();
     public BatchingOptions Batching { get; init; } = new();
+    public OutputOptions Output { get; init; } = new();
 
     public record KafkaOptions
     {
@@ -32,17 +34,21 @@ public record AppConfiguration
         public int AggregationWindowSeconds { get; init; } = 60;
     }
 
-    public record BatchingOptions
-    {
-        public bool Enabled { get; init; } = false;
-        public int MaxBatchSize { get; init; } = 50;
-        public int FlushIntervalSeconds { get; init; } = 10;
-        public TransmissionMode Mode => Enabled ? TransmissionMode.Batched : TransmissionMode.Single;
-    }
-
     public enum AutoOffsetResetMode
     {
         Earliest,
         Latest
     }
+}
+
+public record OutputOptions
+{
+    public OutputAction Action { get; init; } = OutputAction.LogOnly;
+}
+
+public enum OutputAction
+{
+    LogOnly = 0,
+    LogAndSend = 1,
+    SendOnly = 2
 }

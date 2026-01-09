@@ -1,28 +1,23 @@
 using IotEdgeKafkaConnector.Domain.Interfaces;
 using IotEdgeKafkaConnector.Domain.Models;
-using Microsoft.Extensions.Logging;
-using System.Text.Json;
 
 namespace IotEdgeKafkaConnector.Application.Processing;
 
 /// <summary>
-/// Default implementation that simply forwards parsed telemetry to downstream handlers.
-/// This is a placeholder for passthrough/aggregation strategies.
+/// Default implementation that forwards telemetry to configured output services.
 /// </summary>
-public sealed class PassthroughMessageProcessor(ILogger<PassthroughMessageProcessor> logger) : IMessageProcessor
+public sealed class PassthroughMessageProcessor(IMessageOutputService outputService) : IMessageProcessor
 {
     public Task ProcessAsync(TelemetryEnvelope envelope, CancellationToken cancellationToken)
     {
-        logger.LogInformation(
-            "Telemetry received | source={Source} nodeId={NodeId} name={NodeName} ts={Timestamp:o} topic={Topic} payload={Payload}",
+        var message = new TelemetryMessage(
             envelope.Source,
             envelope.NodeId,
-            envelope.NodeName ?? "",
+            envelope.NodeName ?? string.Empty,
             envelope.Timestamp,
-            envelope.Topic ?? "unknown",
-            JsonSerializer.Serialize(envelope.Value));
+            envelope.Value,
+            envelope.Topic ?? string.Empty);
 
-        // Hook for strategy-specific processing (passthrough/aggregation) will be added later.
-        return Task.CompletedTask;
+        return outputService.SendAsync(new[] { message }, cancellationToken);
     }
 }
