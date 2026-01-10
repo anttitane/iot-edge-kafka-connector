@@ -1,4 +1,5 @@
 using IotEdgeKafkaConnector.Application.Configuration;
+using IotEdgeKafkaConnector.Application.Parsing;
 using IotEdgeKafkaConnector.Application.Processing;
 using IotEdgeKafkaConnector.Domain.Interfaces;
 using IotEdgeKafkaConnector.Infrastructure.Messaging;
@@ -11,6 +12,9 @@ builder.Configuration.AddEnvironmentVariables("IOT_EDGE_KAFKA_CONNECTOR_");
 builder.Services.Configure<AppConfiguration>(builder.Configuration);
 builder.Services.Configure<BatchingOptions>(builder.Configuration.GetSection("Batching"));
 builder.Services.Configure<OutputOptions>(builder.Configuration.GetSection("Output"));
+builder.Services.Configure<AppConfiguration.ParsingOptions>(builder.Configuration.GetSection("Parsing"));
+
+builder.Services.AddSingleton<IMessageParser, TelemetryMessageParser>();
 
 builder.Services.AddSingleton<LoggingMessageOutputService>();
 builder.Services.AddSingleton<IoTHubMessageOutputService>();

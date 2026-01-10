@@ -4,5 +4,5 @@ namespace IotEdgeKafkaConnector.Domain.Interfaces;
 
 public interface IMessageProcessor
 {
-    Task ProcessAsync(TelemetryEnvelope envelope, CancellationToken cancellationToken);
+    Task ProcessAsync(TelemetryMessage message, CancellationToken cancellationToken);
 }

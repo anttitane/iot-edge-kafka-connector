@@ -8,14 +8,6 @@ namespace IotEdgeKafkaConnector.Application.Processing;
 /// </summary>
 public sealed class PassthroughMessageProcessor(IMessageOutputService outputService) : IMessageProcessor
 {
-    public Task ProcessAsync(TelemetryEnvelope envelope, CancellationToken cancellationToken)
-    {
-        var message = new TelemetryMessage(
-            envelope.NodeName ?? string.Empty,
-            envelope.Timestamp,
-            envelope.Value,
-            envelope.Source);
-
-        return outputService.SendAsync(new[] { message }, cancellationToken);
-    }
+    public Task ProcessAsync(TelemetryMessage message, CancellationToken cancellationToken) =>
+        outputService.SendAsync(new[] { message }, cancellationToken);
 }

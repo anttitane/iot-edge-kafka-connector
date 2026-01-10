@@ -10,6 +10,7 @@ public record AppConfiguration
     public ProcessingOptions Processing { get; init; } = new();
     public BatchingOptions Batching { get; init; } = new();
     public OutputOptions Output { get; init; } = new();
+    public ParsingOptions Parsing { get; init; } = new();
 
     public record KafkaOptions
     {
@@ -32,6 +33,18 @@ public record AppConfiguration
     {
         public ProcessingMode Mode { get; init; } = ProcessingMode.Passthrough;
         public int AggregationWindowSeconds { get; init; } = 60;
+    }
+
+    public record ParsingOptions
+    {
+        public IReadOnlyList<TelemetryInterest> Interests { get; init; } = Array.Empty<TelemetryInterest>();
+    }
+
+    public record TelemetryInterest
+    {
+        public string Source { get; init; } = string.Empty;
+        public string NodeName { get; init; } = string.Empty;
+        public string? MeasurementKey { get; init; }
     }
 
     public enum AutoOffsetResetMode

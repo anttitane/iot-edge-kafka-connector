@@ -1,8 +1,6 @@
-using System.Text.Json;
 using Confluent.Kafka;
 using IotEdgeKafkaConnector.Application.Configuration;
 using IotEdgeKafkaConnector.Domain.Interfaces;
-using IotEdgeKafkaConnector.Domain.Models;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -16,10 +14,12 @@ namespace IotEdgeKafkaConnector.Infrastructure.Messaging;
 public sealed class KafkaConsumerService(
     IOptions<AppConfiguration> options,
     IMessageProcessor messageProcessor,
+    IMessageParser messageParser,
     ILogger<KafkaConsumerService> logger) : BackgroundService
 {
     private readonly ILogger<KafkaConsumerService> _logger = logger;
     private readonly IMessageProcessor _messageProcessor = messageProcessor;
+    private readonly IMessageParser _messageParser = messageParser;
     private readonly AppConfiguration _settings = options.Value;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -61,12 +61,10 @@ public sealed class KafkaConsumerService(
                         continue;
                     }
 
-                    if (!TryParseTelemetry(result, out var telemetry))
+                    foreach (var message in _messageParser.Parse(result.Message.Value, result.Topic, result.Message.Key))
                     {
-                        continue;
+                        await _messageProcessor.ProcessAsync(message, stoppingToken).ConfigureAwait(false);
                     }
-
-                    await _messageProcessor.ProcessAsync(telemetry, stoppingToken).ConfigureAwait(false);
 
                     if (!_settings.Kafka.EnableAutoCommit)
                     {
@@ -123,62 +121,4 @@ public sealed class KafkaConsumerService(
             .Build();
     }
 
-    private bool TryParseTelemetry(ConsumeResult<string, string> result, out TelemetryEnvelope envelope)
-    {
-        envelope = default!;
-        if (string.IsNullOrWhiteSpace(result.Message.Value))
-        {
-            _logger.LogWarning("Kafka message value was empty (topic {Topic}, offset {Offset})", result.Topic, result.Offset.Value);
-            return false;
-        }
-
-        try
-        {
-            using var document = JsonDocument.Parse(result.Message.Value);
-            var root = document.RootElement;
-
-            var nodeId = TryGetString(root, "nodeId") ?? result.Message.Key ?? "unknown";
-            var source = TryGetString(root, "source") ?? "unknown";
-            var nodeName = TryGetString(root, "nodeName");
-
-            var timestamp = DateTimeOffset.UtcNow;
-            var timestampString = TryGetString(root, "timestamp_iso") ?? TryGetString(root, "timestamp");
-            if (timestampString is not null && DateTimeOffset.TryParse(timestampString, out var parsed))
-            {
-                timestamp = parsed;
-            }
-
-            var value = root.TryGetProperty("value", out var valueElement)
-                ? valueElement.Clone()
-                : root.Clone();
-
-            envelope = new TelemetryEnvelope(
-                nodeId,
-                source,
-                timestamp,
-                value,
-                nodeName,
-                root.Clone(),
-                result.Topic,
-                result.Partition.Value,
-                result.Offset.Value);
-
-            return true;
-        }
-        catch (JsonException jsonEx)
-        {
-            _logger.LogWarning(jsonEx, "Invalid JSON payload on topic {Topic} (offset {Offset})", result.Topic, result.Offset.Value);
-            return false;
-        }
-    }
-
-    private static string? TryGetString(JsonElement element, string propertyName)
-    {
-        if (element.TryGetProperty(propertyName, out var property) && property.ValueKind == JsonValueKind.String)
-        {
-            return property.GetString();
-        }
-
-        return null;
-    }
 }

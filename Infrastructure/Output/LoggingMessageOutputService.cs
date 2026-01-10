@@ -43,9 +43,10 @@ public sealed class LoggingMessageOutputService(
                 {
                     var valueText = JsonSerializer.Serialize(message.Value, _jsonOptions);
                     _logger.LogInformation(
-                        "Telemetry message | source={Source} name={NodeName} ts={Timestamp:o} value={Value}",
+                        "Telemetry message | source={Source} name={NodeName} measurement={MeasurementType} ts={Timestamp:o} value={Value}",
                         message.Source,
                         message.NodeName,
+                        message.MeasurementType,
                         message.Timestamp,
                         valueText);
                 }

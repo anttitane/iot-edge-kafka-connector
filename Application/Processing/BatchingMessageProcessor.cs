@@ -37,10 +37,8 @@ public sealed class BatchingMessageProcessor : IMessageProcessor, IAsyncDisposab
         }
     }
 
-    public async Task ProcessAsync(TelemetryEnvelope envelope, CancellationToken cancellationToken)
+    public async Task ProcessAsync(TelemetryMessage message, CancellationToken cancellationToken)
     {
-        var message = MapToTelemetryMessage(envelope);
-
         if (!_batching.IsEnabled)
         {
             await _outputService.SendAsync(new[] { message }, cancellationToken).ConfigureAwait(false);
@@ -59,12 +57,6 @@ public sealed class BatchingMessageProcessor : IMessageProcessor, IAsyncDisposab
             await FlushAsync(cancellationToken).ConfigureAwait(false);
         }
     }
-
-    private TelemetryMessage MapToTelemetryMessage(TelemetryEnvelope envelope) => new(
-        envelope.NodeName ?? string.Empty,
-        envelope.Timestamp,
-        envelope.Value,
-        envelope.Source);
 
     private async Task FlushAsync(CancellationToken cancellationToken)
     {
