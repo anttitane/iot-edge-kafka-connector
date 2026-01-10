@@ -21,24 +21,6 @@ public sealed class LoggingMessageOutputService(
 
     public Task SendAsync(IReadOnlyCollection<TelemetryMessage> messages, CancellationToken cancellationToken)
     {
-        foreach (var message in messages)
-        {
-            try
-            {
-                var valueText = JsonSerializer.Serialize(message.Value, _jsonOptions);
-                _logger.LogInformation(
-                    "Telemetry message | source={Source} name={NodeName} ts={Timestamp:o} value={Value}",
-                    message.Source,
-                    message.NodeName,
-                    message.Timestamp,
-                    valueText);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to format telemetry message for logging");
-            }
-        }
-
         if (_options.LogSerializedPayload)
         {
             try
@@ -51,6 +33,26 @@ public sealed class LoggingMessageOutputService(
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Failed to serialize telemetry payload for logging");
+            }
+        }
+        else
+        {
+            foreach (var message in messages)
+            {
+                try
+                {
+                    var valueText = JsonSerializer.Serialize(message.Value, _jsonOptions);
+                    _logger.LogInformation(
+                        "Telemetry message | source={Source} name={NodeName} ts={Timestamp:o} value={Value}",
+                        message.Source,
+                        message.NodeName,
+                        message.Timestamp,
+                        valueText);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to format telemetry message for logging");
+                }
             }
         }
 
