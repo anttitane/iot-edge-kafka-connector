@@ -27,12 +27,10 @@ public sealed class LoggingMessageOutputService(
             {
                 var valueText = JsonSerializer.Serialize(message.Value, _jsonOptions);
                 _logger.LogInformation(
-                    "Telemetry message | source={Source} nodeId={NodeId} name={NodeName} ts={Timestamp:o} topic={Topic} value={Value}",
+                    "Telemetry message | source={Source} name={NodeName} ts={Timestamp:o} value={Value}",
                     message.Source,
-                    message.NodeId,
                     message.NodeName,
                     message.Timestamp,
-                    message.Topic,
                     valueText);
             }
             catch (Exception ex)

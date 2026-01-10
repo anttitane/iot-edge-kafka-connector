@@ -12,11 +12,9 @@ public sealed class PassthroughMessageProcessor(IMessageOutputService outputServ
     {
         var message = new TelemetryMessage(
             envelope.Source,
-            envelope.NodeId,
             envelope.NodeName ?? string.Empty,
             envelope.Timestamp,
-            envelope.Value,
-            envelope.Topic ?? string.Empty);
+            envelope.Value);
 
         return outputService.SendAsync(new[] { message }, cancellationToken);
     }

@@ -24,7 +24,7 @@ public sealed class IoTHubMessageOutputService(IOptions<AppConfiguration> config
             return;
         }
 
-        var topic = messages.Count == 1 ? messages.First().Topic ?? string.Empty : string.Empty;
+        var topic = string.Empty;
         var payload = messages.Count == 1
             ? JsonSerializer.SerializeToUtf8Bytes(messages.First(), _jsonOptions)
             : JsonSerializer.SerializeToUtf8Bytes(messages, _jsonOptions);
@@ -32,7 +32,7 @@ public sealed class IoTHubMessageOutputService(IOptions<AppConfiguration> config
         try
         {
             await ((dynamic)_moduleClient).SendEventAsync(topic, payload, cancellationToken).ConfigureAwait(false);
-            _logger.LogInformation("Sent {Count} telemetry message(s) to IoT Hub (topic '{Topic}')", messages.Count, topic);
+            _logger.LogInformation("Sent {Count} telemetry message(s) to IoT Hub", messages.Count);
         }
         catch (Exception ex)
         {

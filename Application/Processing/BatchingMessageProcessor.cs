@@ -62,11 +62,9 @@ public sealed class BatchingMessageProcessor : IMessageProcessor, IAsyncDisposab
 
     private TelemetryMessage MapToTelemetryMessage(TelemetryEnvelope envelope) => new(
         envelope.Source,
-        envelope.NodeId,
         envelope.NodeName ?? string.Empty,
         envelope.Timestamp,
-        envelope.Value,
-        envelope.Topic ?? string.Empty);
+        envelope.Value);
 
     private async Task FlushAsync(CancellationToken cancellationToken)
     {
