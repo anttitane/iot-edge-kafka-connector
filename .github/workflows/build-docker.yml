@@ -1,0 +1,198 @@
+name: Build Docker image on merges and releases
+
+on:
+  pull_request:
+    branches: [ main ]
+    types: [ closed ]
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Choose what to tag (latest or version)"
+        type: choice
+        options:
+          - latest
+          - version
+        default: latest
+      version:
+        description: "Version tag to use when mode=version (e.g., v1.2.3 or 1.2.3)"
+        required: false
+        type: string
+      platforms:
+        description: "Comma-separated platforms (e.g., linux/amd64 or linux/amd64,linux/arm64)"
+        required: false
+        default: linux/amd64
+        type: string
+      push:
+        description: "Push image to registry (true) or build-only (false)"
+        required: false
+        default: true
+        type: boolean
+
+jobs:
+  build-and-push-on-merge:
+    # Only run when the PR was actually merged into main
+    if: github.event_name == 'pull_request' && github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU (multi-arch)
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Prepare image name
+        id: prep
+        shell: bash
+        run: |
+          IMAGE_NAME=$(echo "ghcr.io/${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          echo "image=$IMAGE_NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push (latest tag)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: |
+            ${{ steps.prep.outputs.image }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  build-and-push-manual:
+    # Run only on manual dispatch
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU (multi-arch)
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Prepare image and tags
+        id: prep
+        shell: bash
+        run: |
+          set -euo pipefail
+          IMAGE_NAME=$(echo "ghcr.io/${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          echo "image=$IMAGE_NAME" >> "$GITHUB_OUTPUT"
+
+          MODE='${{ inputs.mode }}'
+          VERSION_INPUT='${{ inputs.version }}'
+          TAGS_FILE="$RUNNER_TEMP/tags.txt"
+          : > "$TAGS_FILE"
+
+          if [ "$MODE" = "latest" ]; then
+            echo "$IMAGE_NAME:latest" >> "$TAGS_FILE"
+          else
+            if [ -z "$VERSION_INPUT" ]; then
+              echo "::error::mode=version requires inputs.version (e.g., v1.2.3)" >&2
+              exit 1
+            fi
+            RAW_TAG="$VERSION_INPUT"
+            if [[ "$RAW_TAG" =~ ^v ]]; then
+              NO_V="${RAW_TAG#v}"
+              echo "$IMAGE_NAME:$RAW_TAG" >> "$TAGS_FILE"
+              echo "$IMAGE_NAME:$NO_V" >> "$TAGS_FILE"
+            else
+              echo "$IMAGE_NAME:$RAW_TAG" >> "$TAGS_FILE"
+              echo "$IMAGE_NAME:v$RAW_TAG" >> "$TAGS_FILE"
+            fi
+          fi
+
+          echo "tags<<EOF" >> "$GITHUB_OUTPUT"
+          cat "$TAGS_FILE" >> "$GITHUB_OUTPUT"
+          echo "" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+      - name: Build and (optionally) push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: ${{ inputs.push }}
+          platforms: ${{ inputs.platforms }}
+          tags: ${{ steps.prep.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  build-and-push-on-tag:
+    # Run on version tag pushes like v1.2.3
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU (multi-arch)
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Prepare image and version tags
+        id: prep
+        shell: bash
+        run: |
+          IMAGE_NAME=$(echo "ghcr.io/${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          RAW_TAG="${GITHUB_REF#refs/tags/}"
+          VERSION_NO_V="${RAW_TAG#v}"
+          echo "image=$IMAGE_NAME" >> "$GITHUB_OUTPUT"
+          echo "raw_tag=$RAW_TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION_NO_V" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push (version tags)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: |
+            ${{ steps.prep.outputs.image }}:${{ steps.prep.outputs.raw_tag }}
+            ${{ steps.prep.outputs.image }}:${{ steps.prep.outputs.version }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
