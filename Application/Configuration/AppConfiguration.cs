@@ -27,6 +27,8 @@ public record AppConfiguration
     {
         public string ConnectionString { get; init; } = string.Empty;
         public string TransportType { get; init; } = "Mqtt_Tcp_Only";
+        public string Output { get; init; } = "";
+        public string? OutputName { get; internal set; }
     }
 
     public record ProcessingOptions
