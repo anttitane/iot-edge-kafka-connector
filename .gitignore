@@ -41,6 +41,9 @@ ScaffoldingReadMe.txt
 *~
 CodeCoverage/
 
+# IoT Edge deployment secrets
+deployment.json
+
 # MSBuild Binary and Structured Log
 *.binlog
 
