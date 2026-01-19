@@ -14,4 +14,8 @@
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.1" />
     <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.1" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="IotEdgeKafkaConnector.Tests\**\*.cs" />
+  </ItemGroup>
 </Project>
